@@ -70,3 +70,6 @@ class IndeedCounter:
     async def count_vacancies(self) -> str:
         soup = await get_soup(self.search_url)
         return IndeedCounter._extract_vacancies(soup)
+
+
+__all__ = ['FlexJobCounter', 'IndeedCounter']
