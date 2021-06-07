@@ -17,27 +17,56 @@ async def get_soup(url):
             return soup
 
 
-async def count_flex_jobs(query: str) -> int:
-    url = FLEX_JOBS_URL.format(query='+'.join(query.split()))
-    soup = await get_soup(url)
-    vacancies_tag = soup.find('h4', attrs={'style': 'margin:0;font-size:14px;'})
+class FlexJobCounter:
+    SEARCH_URL_JOINER = '+'
+    FLEX_JOBS_URL = 'https://www.flexjobs.com/search?search=&search={query}'
+    VACANCIES_TAG_ATTRS = {'style': 'margin:0;font-size:14px;'}
 
-    vacancies = vacancies_tag.text
-    start_index = vacancies.index('of') + 2
-    end_index = vacancies.index('for') - 3
-    vacancies_count = vacancies[start_index: end_index].strip()
+    @classmethod
+    def _get_search_url(cls, searched_job) -> str:
+        words = searched_job.split()
+        search_query = cls.SEARCH_URL_JOINER.join(words)
+        return cls.FLEX_JOBS_URL.format(query=search_query)
 
-    return vacancies_count
+    @classmethod
+    def _extract_vacancies(cls, soup) -> str:
+        vacancies_tag = soup.find('h4', attrs=cls.VACANCIES_TAG_ATTRS)
+        vacancies = vacancies_tag.text
+        vacancies_slice = slice(
+            vacancies.index('of') + 2,
+            vacancies.index('for') - 3
+        )
+        return vacancies[vacancies_slice].strip()
+
+    def __init__(self, searched_job) -> None:
+        self.search_url = FlexJobCounter._get_search_url(searched_job)
+
+    async def count_vacancies(self) -> str:
+        soup = await get_soup(self.search_url)
+        return FlexJobCounter._extract_vacancies(soup)
 
 
-async def count_indeed(query: str) -> int:
-    url = INDEED_URL.format(query='+'.join(query.split()))
-    soup = await get_soup(url)
-    vacancies_tag = soup.select('div#searchCountPages')[0]
+class IndeedCounter:
+    SEARCH_URL_JOINER = '+'
+    INDEED_URL = 'https://www.indeed.com/jobs?q={query}&l=&ts=1621597199451&rq=1&rsIdx=0&fromage=last&newcount=38396'
+    VACANCIES_TAG_PATH = 'div#searchCountPages'
 
-    vacancies = vacancies_tag.text
-    of_ind, jobs_ind = vacancies.index('of'), vacancies.index('jobs')
-    vacancies_count = vacancies[of_ind + 2: jobs_ind].strip()
-    vacancies_count = int(vacancies_count.replace(',', ''))
+    @classmethod
+    def _get_search_url(cls, searched_job) -> str:
+        words = searched_job.split()
+        search_query = cls.SEARCH_URL_JOINER.join(words)
+        return cls.INDEED_URL.format(query=search_query)
 
-    return vacancies_count
+    @classmethod
+    def _extract_vacancies(cls, soup) -> str:
+        vacancies_tag = soup.select(cls.VACANCIES_TAG_PATH)[0]
+        vacancies = vacancies_tag.text
+        start, end = vacancies.index('of'), vacancies.index('jobs')
+        return vacancies[start + 2: end].strip()
+
+    def __init__(self, searched_job) -> None:
+        self.search_url = IndeedCounter._get_search_url(searched_job)
+
+    async def count_vacancies(self) -> str:
+        soup = await get_soup(self.search_url)
+        return IndeedCounter._extract_vacancies(soup)
