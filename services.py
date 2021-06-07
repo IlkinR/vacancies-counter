@@ -1,5 +1,7 @@
+import asyncio
 import requests
 from bs4 import BeautifulSoup
+import aiohttp
 
 HEAD_HUNTER_URL = 'https://api.hh.ru/vacancies'
 FLEX_JOBS_URL = 'https://www.flexjobs.com/search?search=&search={query}'
@@ -7,15 +9,17 @@ INDEED_URL = 'https://www.indeed.com/jobs?q={query}&l=&ts=1621597199451&rq=1&rsI
 SUPER_JOB_URL = 'https://ru.jobsora.com/работа-{query}'
 
 
-async def count_head_hunter(query: str) -> int:
-    payload = {'text': query, 'search_field': ['description', 'name']}
-    response = requests.get(HEAD_HUNTER_URL, params=payload).json()
-    return int(response.get('found', -1))
+async def get_soup(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            response = await response.text()
+            soup = BeautifulSoup(response, 'lxml')
+            return soup
 
 
 async def count_flex_jobs(query: str) -> int:
     url = FLEX_JOBS_URL.format(query='+'.join(query.split()))
-    soup = BeautifulSoup(requests.get(url).content, 'lxml')
+    soup = await get_soup(url)
     vacancies_tag = soup.find('h4', attrs={'style': 'margin:0;font-size:14px;'})
 
     vacancies = vacancies_tag.text
@@ -28,7 +32,7 @@ async def count_flex_jobs(query: str) -> int:
 
 async def count_indeed(query: str) -> int:
     url = INDEED_URL.format(query='+'.join(query.split()))
-    soup = BeautifulSoup(requests.get(url).content, 'lxml')
+    soup = await get_soup(url)
     vacancies_tag = soup.select('div#searchCountPages')[0]
 
     vacancies = vacancies_tag.text
