@@ -9,7 +9,7 @@ INDEED_URL = 'https://www.indeed.com/jobs?q={query}&l=&ts=1621597199451&rq=1&rsI
 SUPER_JOB_URL = 'https://ru.jobsora.com/работа-{query}'
 
 
-async def get_soup(url):
+async def get_soup(url: str):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             response = await response.text()
@@ -38,7 +38,7 @@ class FlexJobCounter:
         )
         return vacancies[vacancies_slice].strip()
 
-    def __init__(self, searched_job) -> None:
+    def __init__(self, searched_job: str) -> None:
         self.search_url = FlexJobCounter._get_search_url(searched_job)
 
     async def count_vacancies(self) -> str:
@@ -52,7 +52,7 @@ class IndeedCounter:
     VACANCIES_TAG_PATH = 'div#searchCountPages'
 
     @classmethod
-    def _get_search_url(cls, searched_job) -> str:
+    def _get_search_url(cls, searched_job: str) -> str:
         words = searched_job.split()
         search_query = cls.SEARCH_URL_JOINER.join(words)
         return cls.INDEED_URL.format(query=search_query)
@@ -64,7 +64,7 @@ class IndeedCounter:
         start, end = vacancies.index('of'), vacancies.index('jobs')
         return vacancies[start + 2: end].strip()
 
-    def __init__(self, searched_job) -> None:
+    def __init__(self, searched_job: str) -> None:
         self.search_url = IndeedCounter._get_search_url(searched_job)
 
     async def count_vacancies(self) -> str:
