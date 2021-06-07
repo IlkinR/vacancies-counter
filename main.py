@@ -1,6 +1,3 @@
-from collections import namedtuple
-from typing import Dict
-
 from fastapi import FastAPI
 from services import FlexJobCounter, IndeedCounter
 
